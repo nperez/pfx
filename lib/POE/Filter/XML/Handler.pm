@@ -8,6 +8,13 @@ use POE::Filter::XML::Node;
 
 our $VERSION = '0.34';
 
+sub clone()
+{
+	my $self = shift(@_);
+
+	return POE::Filter::XML::Handler->new($self->{'notstreaming'});
+}
+
 sub new()
 {
 	my ($class, $notstreaming) = @_;

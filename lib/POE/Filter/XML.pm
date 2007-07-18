@@ -30,7 +30,7 @@ sub clone()
 	return POE::Filter::XML->new(
 		'buffer' => $self->[+BUFFER], 
 		'callback' => $self->[+CALLBACK],
-		'handler' => $self->[+HANDLER],
+		'handler' => $self->[+HANDLER]->clone(),
 		'notstreaming' => $self->[+NOTSTREAMING]);
 }
 
@@ -61,8 +61,11 @@ sub new()
 		$config->{'callback'} = sub{Carp::confess('Parsing error happened!');};
 	}
 	
-	$config->{'handler'} = POE::Filter::XML::Handler->new(
-		$config->{'notstreaming'});
+	unless($config->{'handler'})
+	{
+		$config->{'handler'} = POE::Filter::XML::Handler->new(
+			$config->{'notstreaming'});
+	}
 	
 	my $parser = XML::SAX::ParserFactory->parser(
 		'Handler' => $config->{'handler'});
