@@ -2,7 +2,7 @@ package POE::Filter::XML;
 use strict;
 use warnings;
 
-our $VERSION = '0.34';
+our $VERSION = '0.35';
 
 use XML::SAX;
 use XML::SAX::ParserFactory;
@@ -97,9 +97,15 @@ sub new()
 
 sub DESTROY
 {
-	my $self = shift;
-	
-	#HACK: stupid circular references in 3rd party modules
+	$_[0]->frob_parser();
+	$_[0]->[+HANDLER] = undef;
+}
+
+sub frob_parser()
+{
+    my $self = shift;
+
+    #HACK: stupid circular references in 3rd party modules
 	#We need to weaken/break these or the damn parser leaks
 	$self->[+PARSER]->{'_expat_nb_obj'}->release()
 		if defined($self->[+PARSER]->{'_expat_nb_obj'});
@@ -107,7 +113,6 @@ sub DESTROY
 	weaken($self->[+PARSER]->{'_xml_parser_obj'}->{'__XSE'});
 	
 	$self->[+PARSER] = undef;
-	$self->[+HANDLER] = undef;
 }
 
 sub callback()
@@ -129,6 +134,8 @@ sub reset()
 	my ($self) = @_;
 
 	$self->[+HANDLER]->reset();
+    
+    $self->frob_parser();
 
 	$self->[+PARSER] = XML::SAX::ParserFactory->parser
 	(	
