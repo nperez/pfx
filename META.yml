@@ -7,12 +7,12 @@ license: gpl
 resources:
   license: http://opensource.org/licenses/gpl-license.php
 requires:
-  Filter::Template: 1.01
-  POE: 0.34_01
-  Scalar::Util: 1.18
-  XML::SAX: 0.14
-  XML::SAX::Expat::Incremental: 0.04
-  perl: 5.8.1
+  Class::InsideOut: 1.09
+  Filter::Template: 1.02
+  POE: 1.003
+  XML::LibXML: 1.69
+  XML::SAX: 0.16
+  perl: 5.10.0
 provides:
   POE::Filter::XML:
     file: lib/POE/Filter/XML.pm
@@ -28,7 +28,7 @@ provides:
     version: 0.35
   POE::Filter::XML::Utils:
     file: lib/POE/Filter/XML/Utils.pm
-    version: 0.34
+    version: 0.35
 generated_by: Module::Build version 0.280801
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html

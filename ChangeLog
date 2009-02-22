@@ -1,3 +1,17 @@
+2009-01-04 NPEREZ <nperez@cpan.org>
+	
+	* Version bumped to 0.35
+	* XML::LibXML support complete
+	* Node completely rewritten to be based on LibXML::Element
+	* Actual tests added for the filter, node, etc
+	* Documentation updated to reflect these major changes
+	* No more Makefile.PL
+
+2008-12-31 NPEREZ <nperez@cpan.org>
+
+	* No version
+	* Implement initial XML::LibXML port
+
 2007-04-19 NPEREZ <nperez@cpan.org>
 
 	* Version bumped to 0.34

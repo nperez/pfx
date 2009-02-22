@@ -3,15 +3,14 @@ Module::Build->new
 (
 	'module_name' => 'POE::Filter::XML',
 	'license' => 'gpl',
-	'create_makefile_pl' => 'passthrough',
 	'create_readme' => 1,
 	'requires' =>
 	{
-		'perl'	=>	'5.8.1',
-		'POE'	=>	'0.34_01',
-		'Scalar::Util' => '1.18',
-		'XML::SAX' => '0.14',
-		'XML::SAX::Expat::Incremental' => '0.04',
-		'Filter::Template' => '1.01',
+		'perl'	=>	'5.10.0',
+		'POE'	=>	'1.003',
+		'XML::SAX' => '0.16',
+		'Filter::Template' => '1.02',
+        'Class::InsideOut' => '1.09',
+        'XML::LibXML' => '1.69',
 	}
 )->create_build_script();
