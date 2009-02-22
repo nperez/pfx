@@ -4,12 +4,14 @@ use strict;
 
 use XML::LibXML(':libxml');
 use Class::InsideOut('register', 'public');
-use base('XML::LibXML::Element');
+use base('XML::LibXML::Element', 'Exporter');
 
 our $VERSION = '0.35';
 
 public 'stream_start' => my %stream_start;
 public 'stream_end' => my %stream_end;
+
+our @EXPORT = qw/ &ordain /;
 
 my $id = 0;
 
@@ -19,7 +21,7 @@ sub new()
     my $name = shift(@_);
     my $attrs = shift(@_);
 
-    my $self = __PACKAGE__->SUPER::new($name);
+    my $self = $class->SUPER::new($name);
     
     _bless_register($self, $class);
     
@@ -43,27 +45,13 @@ sub cloneNode()
     $clone->stream_start($self->stream_start());
     $clone->stream_end($self->stream_end());
     
-    _cascade_bless_register($clone, ref($self));
-    
     return $clone;
 }
 
-sub _cascade_bless_register
+sub ordain
 {
-    my $clone = shift(@_);
-    my $class = shift(@_);
-
-    if($clone->hasChildNodes())
-    {
-        foreach my $child ($clone->getChildrenByTagName('*'))
-        {
-            _cascade_bless_register($child, $class);
-        }
-    }
-    else
-    {
-        _bless_register($clone, $class);
-    }
+    my $node = shift(@_);
+    return _bless_register($node, __PACKAGE__);
 }
 
 sub _bless_register
@@ -148,7 +136,6 @@ sub getSingleChildByTagName()
     
     my $node = ($self->getChildrenByTagName($name))[0];
     _bless_register($node, ref($self));
-    _cascade_bless_register($node, ref($self));
     return $node;
 }
 						
@@ -161,7 +148,6 @@ sub getChildrenHash()
     foreach my $child ($self->getChildrenByTagName("*"))
     {
         _bless_register($child, ref($self));
-        _cascade_bless_register($child, ref($self));
 
         my $name = $child->nodeName();
         
@@ -227,6 +213,7 @@ $node->setAttributes(
 );
 
 my $query = $node->addNewChild('jabber:iq:foo', 'query');
+
 $query->appendTextChild('foo_tag', 'bar');
 
 say $node->toString();
@@ -246,11 +233,11 @@ say $node->toString();
 POE::Filter::XML::Node is a XML::LibXML::Element subclass that aims to provide
 a few extra convenience methods and light integration into a streaming context.
 
-=head1 METHODS [subclass only]
+=head1 METHODS
 
 =over 4
 
-=item stream_start()
+=item stream_start($bool) [public]
 
 stream_start() called without arguments returns a bool on whether or not the
 node in question is the top level document tag. In an xml stream such as
@@ -261,7 +248,7 @@ This method is significant because it determines the behavior of the toString()
 method. If stream_start() returns bool true, the tag will not be terminated.
 (ie. <iq to='test' from='test'> instead of <iq to='test' from='test'B</>>)
 
-=item stream_end()
+=item stream_end($bool) [public]
 
 stream_end() called without arguments returns a bool on whether or not the
 node in question is the closing document tag in a stream. In an xml stream
@@ -274,23 +261,83 @@ children of the node is ignored and an ending tag is constructed.
 
 (ie. </iq> instead of <iq to='test' from='test'><child/></iq>)
 
-=item setAttributes()
+=item setAttributes($array_ref) [public]
 
 setAttributes() accepts a single arguement: an array reference. Basically you
 pair up all the attributes you want to be into the node (ie. [attrib, value])
 and this method will process them using setAttribute(). This is just a 
 convenience method.
 
-=item getAttributes()
+If one of the attributes is 'xmlns', setNamespace() will be called with the 
+value used as the $nsURI argument, with no prefix, and not activated.
+
+ eg. 
+ ['xmlns', 'http://foo']
+        |
+        V
+ setNamespace($value, '', 0)
+        |
+        V
+ <node xmlns="http://foo"/>
+
+=item getAttributes() [public]
 
 This method returns all of the attribute nodes on the Element (filtering out 
 namespace declarations).
 
-=item getChildrenHash()
+=item getChildrenHash() [public]
 
 getChildrenHash() returns a hash reference to all the children of that node.
 Each key in the hash will be node name, and each value will be an array
-reference with all of the children with that name.
+reference with all of the children with that name. Each child will be 
+blessed into POE::Filter::XML::Node.
+
+=item getSingleChildByTagName($name) [public]
+
+This is a convenience method that basically does:
+ (getChildrenByTagName($name))[0]
+
+The returned object will be a POE::Filter::XML::Node object.
+
+=item new($name,[$array_ref]) [overriden]
+
+The default XML::LibXML::Element constructor is overridden to provide some
+extra functionality with regards to attributes. If the $array_ref argument is
+defined, it will be passed to setAttributes().
+
+Returns a newly constructed POE::Filter::XML::Node.
+
+=item cloneNode($deep) [overridden]
+
+This method overrides the base cloneNode() to propogate the stream_[start|end]
+bits on the node being cloned. The $deep argument is passed unchanged to the 
+base class.
+
+This returns a POE::Filter::XML::Node object.
+
+=item appendChild($name|$node,[$array_ref]) [overridden]
+
+Depending on the arguments provided, this method either 1) instantiates a new
+Node and appends to the subject or 2) appends the provided Node object. An
+array reference of attributes may also be provided in either case, and if
+defined, will be passed to setAttributes().
+
+=item toString($formatted) [overridden]
+
+toString() was overridden to provide special stringification semantics for when
+stream_start and stream_end are boolean true. 
+
+=back
+
+=head1 FUNCTIONS
+
+=over 4
+
+=item ordain($element) [exported by default]
+
+Use this exported function to get PFX::Nodes from XML::LibXML::Elements. This
+is useful for inherited methods that by default return Elements instead of
+Nodes.
 
 =back
 
@@ -298,6 +345,10 @@ reference with all of the children with that name.
 
 This Node module is 100% incompatible with previous versions. Do NOT assume
 this will upgrade cleanly.
+
+When using XML::LibXML::Element methods, the objects returned will NOT be 
+blessed into POE::Filter::XML::Node objects unless those methods are explictly
+overriden in this module. Use POE::Filter::XML::Node::ordain to overcome this.
 
 =head1 AUTHOR
 

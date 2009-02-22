@@ -2,7 +2,7 @@ use 5.010;
 use warnings;
 use strict;
 
-use Test::More tests => 26;
+use Test::More tests => 32;
 
 BEGIN
 {
@@ -40,45 +40,51 @@ while(1)
     {
         when( sub { $_->stream_start() } )
         {
-            pass('Got stream start 1/2');
-            is($_->nodeName(), 'stream', 'Got stream start 2/2');
+            pass('Got stream start 1/3');
+            is(ref($_), 'POE::Filter::XML::Node', 'Got stream start 2/3');
+            is($_->nodeName(), 'stream', 'Got stream start 3/3');
         }
 
         when( sub { $_->stream_end() } )
         {
-            pass('Got stream end 1/2');
-            is($_->nodeName(), 'stream', 'Got stream end 2/2');
+            pass('Got stream end 1/3');
+            is(ref($_), 'POE::Filter::XML::Node', 'Got stream end 2/3');
+            is($_->nodeName(), 'stream', 'Got stream end 3/3');
         }
 
         when( sub { $_->nodeName() eq 'iq' } )
         {
-            pass('Got iq 1/11');
-            is($_->getAttribute('from'), 'blah.com', 'Got iq 2/11');
-            is($_->getAttribute('type'), 'result', 'Got iq 3/11');
-            is($_->getAttribute('to'), 'blah@blah.com/foo', 'Got iq 4/11');
-            is($_->getAttribute('id'), 'abc123', 'Got iq 5/11');
+            pass('Got iq 1/13');
+            is(ref($_), 'POE::Filter::XML::Node', 'Got iq 2/13');
+            is($_->getAttribute('from'), 'blah.com', 'Got iq 3/13');
+            is($_->getAttribute('type'), 'result', 'Got iq 4/13');
+            is($_->getAttribute('to'), 'blah@blah.com/foo', 'Got iq 5/13');
+            is($_->getAttribute('id'), 'abc123', 'Got iq 6/13');
 
-            my $child = ($_->getChildrenByTagName('service'))[0];
-            ok(defined($child), 'Got iq 6/11');
-            is($child->getAttribute('type'), 'jabber', 'Got iq 7/11');
-            is($child->getAttribute('name'), 'Server', 'Got iq 8/11');
-            is($child->getAttribute('jid'), 'blah.com', 'Got iq 9/11');
-            ok(scalar($child->getNamespaces()), 'Got iq 10/11');
-            is(($child->getNamespaces())[0]->value(), 'jabber:iq:browse', 'Got iq 11/11'); 
+            my $child = $_->getSingleChildByTagName('service');
+            ok(defined($child), 'Got iq 7/13');
+            is(ref($child), 'POE::Filter::XML::Node', 'Got stream end 8/13');            
+            is($child->getAttribute('type'), 'jabber', 'Got iq 9/13');
+            is($child->getAttribute('name'), 'Server', 'Got iq 10/13');
+            is($child->getAttribute('jid'), 'blah.com', 'Got iq 11/13');
+            ok(scalar($child->getNamespaces()), 'Got iq 12/13');
+            is(($child->getNamespaces())[0]->value(), 'jabber:iq:browse', 'Got iq 13/13'); 
 
         }
 
         when( sub { $_->nodeName() eq 'presence' } )
         {
-            pass('Got presence 1/3');
-            is($_->getAttribute('from'), 'baz@blah.com/bar', 'Got presence 2/3');
-            is($_->getAttribute('to'), 'blah@blah.com/foo', 'Got presence 3/3');
+            pass('Got presence 1/4');
+            is(ref($_), 'POE::Filter::XML::Node', 'Got presence 2/4');
+            is($_->getAttribute('from'), 'baz@blah.com/bar', 'Got presence 3/4');
+            is($_->getAttribute('to'), 'blah@blah.com/foo', 'Got presence 4/4');
         }
 
         when( sub { $_->nodeName() eq 'testnode' } )
         {
-            pass('Got testnode 1/2');
-            is($_->textContent(), 'THIS IS SOME TEXT', 'Got testnode 2/2');
+            pass('Got testnode 1/3');
+            is(ref($_), 'POE::Filter::XML::Node', 'Got testnode 2/3');
+            is($_->textContent(), 'THIS IS SOME TEXT', 'Got testnode 3/3');
         }
     }
 }
