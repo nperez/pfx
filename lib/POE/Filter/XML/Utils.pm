@@ -81,11 +81,10 @@ sub get_hash_from_node
 {
 	my $node = shift;
 	my $hash = {};
-	return $node->data() unless keys %{$node->[3]} > 0;
-	foreach my $kid (keys %{$node->[3]})
+	return $node->textContent() unless $node->hasChildNodes();
+	foreach my $kid ($node->getChildrenByTagName('*'))
 	{
-		$hash->{$node->[3]->{$kid}->name()} 
-			= get_hash_from_node($node->[3]->{$kid});
+		$hash->{$kid->nodeName()} = get_hash_from_node($kid);
 
 	}
 	return $hash;
@@ -96,16 +95,16 @@ sub get_reply
 {
 	my $node = shift;
 
-	my $attribs = $node->get_attrs();
+	my $attribs = $node->getAttributes();
 	my $to = $attribs->{'to'};
 	my $from = $attribs->{'from'};
 
-	$node->attr('to' => $from);
-	$node->attr('from' => $to);
+	$node->setAttribute('to' => $from);
+	$node->setAttribute('from' => $to);
 
-	if($node->name() eq 'iq')
+	if($node->nodeName() eq 'iq')
 	{
-		$node->attr('type' => +IQ_RESULT);
+		$node->setAttribute('type' => +IQ_RESULT);
 	}
 
 	return $node;
@@ -115,16 +114,17 @@ sub get_error
 {
 	my ($node, $error, $code) = @_;
 
-	my $from = $node->attr('from');
-	my $to = $node->attr('to');
+	my $from = $node->getAttribute('from');
+	my $to = $node->getAttribute('to');
 
-	$node->attr('to' => $from);
-	$node->attr('from' => $to);
-	$node->attr('type' => +IQ_ERROR);
+	$node->setAttribute('to' => $from);
+	$node->setAttribute('from' => $to);
+	$node->setAttribute('type' => +IQ_ERROR);
 
-	my $err = $node->insert_tag('error');
-	$err->attr('code' => $code);
-	$err->data($error);
+	my $err = POE::Filter::XML::Node->new('error');
+	$err->setAttribute('code' => $code);
+	$err->appendText($error);
+    $node->appendChild($err);
 
 	return $node;
 	
@@ -134,15 +134,21 @@ sub get_stanza_error
 {
 	my ($node, $error, $type) = @_;
 	
-	my $from = $node->attr('from');
-	my $to = $node->attr('to');
-	$node->attr('to' => $from);
-	$node->attr('from' => $to);
-	$node->attr('type' => +IQ_ERROR);
+	my $from = $node->getAttribute('from');
+	my $to = $node->getAttribute('to');
+	$node->setAttribute('to' => $from);
+	$node->setAttribute('from' => $to);
+	$node->setAttribute('type' => +IQ_ERROR);
 	
-	$node->insert_tag('error')->attr('type', $type)
-		->insert_tag($error, ['xmlns', +NS_XMPP_STANZA]);
-	
+	my $err = POE::Filter::XML::Node->new('error');
+	$err->setAttribute('type' => $type);
+
+    my $stanza = POE::Filter::XML::Node->new($error);
+    $stanza->setNamespace(+NS_XMPP_STANZA);
+
+	$err->appendChild($stanza);
+    $node->appendChild($err);
+
 	return $node;
 }
 

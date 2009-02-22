@@ -76,13 +76,13 @@ sub getAttributes()
 {
 	my $self = shift(@_);
     
-    my $attributes = [];
+    my $attributes = {};
 
     foreach my $attrib ($self->attributes())
     {
         if($attrib->nodeType == XML_ATTRIBUTE_NODE)
         {
-            push(@$attributes, $attrib);
+            $attributes->{$attrib->nodeName()} = $attrib->value();
         }
     }
 
