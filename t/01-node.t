@@ -2,7 +2,7 @@ use 5.010;
 use warnings;
 use strict;
 
-use Test::More tests => 21;
+use Test::More tests => 26;
 
 BEGIN
 {
@@ -60,3 +60,11 @@ $clone->stream_end(0);
 $node->stream_end(0);
 
 is($clone->toString(), $node->toString(), 'Check the clone against the original');
+
+my $nodewithattributes = POE::Filter::XML::Node->new('newnode', [ 'xmlns', 'test:namespace', 'foo', 'foovalue' ]);
+
+is($nodewithattributes->nodeName(), 'newnode', 'Check alternate constructor 1/4');
+is($nodewithattributes->getAttribute('foo'), 'foovalue', 'Check alternate constructor 2/4');
+ok(scalar($nodewithattributes->getNamespaces()), 'Check alternate constructor 3/4');
+is(($nodewithattributes->getNamespaces())[0]->value(), 'test:namespace', 'Check alternate constructor 4/4'); 
+is($nodewithattributes->toString(), '<newnode xmlns="test:namespace" foo="foovalue"/>', 'Check toString() on alternately constructed node');

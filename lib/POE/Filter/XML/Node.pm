@@ -21,12 +21,11 @@ sub new()
 
     my $self = __PACKAGE__->SUPER::new($name);
     
-    bless($self, $class);
-    register($self);
+    _bless_register($self, $class);
     
     if(defined($attrs))
     {
-        $self->setAttributes($_[2]);
+        $self->setAttributes($attrs);
     }
     
     return $self;
@@ -39,17 +38,17 @@ sub cloneNode()
     
     my $clone = $self->SUPER::cloneNode($deep);
     
-    _register($clone, ref($self));
+    _bless_register($clone, ref($self));
     
     $clone->stream_start($self->stream_start());
     $clone->stream_end($self->stream_end());
     
-    _clone($clone, ref($self));
+    _cascade_bless_register($clone, ref($self));
     
     return $clone;
 }
 
-sub _clone
+sub _cascade_bless_register
 {
     my $clone = shift(@_);
     my $class = shift(@_);
@@ -58,16 +57,16 @@ sub _clone
     {
         foreach my $child ($clone->getChildrenByTagName('*'))
         {
-            _clone($child, $class);
+            _cascade_bless_register($child, $class);
         }
     }
     else
     {
-        _register($class, $clone);
+        _bless_register($clone, $class);
     }
 }
 
-sub _register
+sub _bless_register
 {
     my $node = shift(@_);
     my $class = shift(@_);
@@ -75,7 +74,7 @@ sub _register
     bless($node, $class);
     register($node);
     
-    return undef;
+    return $node;
 }
 
 sub setAttributes()
@@ -84,7 +83,14 @@ sub setAttributes()
 
 	for(my $i = 0; $i < scalar(@$array); $i++)
 	{
-		$self->setAttribute($array->[$i], $array->[++$i]);
+        if($array->[$i] eq 'xmlns')
+        {
+            $self->setNamespace($array->[++$i], '', 0);
+        }
+        else
+        {
+		    $self->setAttribute($array->[$i], $array->[++$i]);
+        }
 	}
 	
 	return $self;
@@ -115,20 +121,21 @@ sub appendChild()
 
     my $node;
 
-    if(ref($child) eq ref($self)))
+    if(ref($child) eq ref($self))
     {
-        $node = $self->SUPER::appendChild($child);
+        $self->SUPER::appendChild($child);
+        
+        $node = $child;
+        
+        if(defined($attrs))
+        {
+            $node->setAttributes($attrs);
+        }
     }
     else
     {
-        $node = $self->addNewChild($child);
-    }
-    
-    _register($node);
-
-    if(defined($attrs))
-    {
-        $node->setAttributes($attrs);
+        $node = POE::Filter::XML::Node->new($child, $attrs);
+        $self->appendChild($node);
     }
 
     return $node;
@@ -138,8 +145,11 @@ sub getSingleChildByTagName()
 {
     my $self = shift(@_);
     my $name = shift(@_);
-
-    return ($self->getChildrenByTagName($name))[0];
+    
+    my $node = ($self->getChildrenByTagName($name))[0];
+    _bless_register($node, ref($self));
+    _cascade_bless_register($node, ref($self));
+    return $node;
 }
 						
 sub getChildrenHash()
@@ -150,6 +160,9 @@ sub getChildrenHash()
 
     foreach my $child ($self->getChildrenByTagName("*"))
     {
+        _bless_register($child, ref($self));
+        _cascade_bless_register($child, ref($self));
+
         my $name = $child->nodeName();
         
         if(!exists($children->{$name}))

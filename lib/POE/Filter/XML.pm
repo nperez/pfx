@@ -4,11 +4,9 @@ use warnings;
 
 our $VERSION = '0.35';
 
-use XML::SAX;
-use XML::SAX::ParserFactory;
+use XML::LibXML;
 use POE::Filter::XML::Handler;
 use Carp;
-$XML::SAX::ParserPackage = "XML::LibXML::SAX";
 
 # This is to make Filter::Stackable happy
 use base('POE::Filter');
@@ -66,7 +64,7 @@ sub new()
 			$config->{'notstreaming'});
 	}
 	
-	my $parser = XML::SAX::ParserFactory->parser(
+	my $parser = XML::LibXML->new(
 		'Handler' => $config->{'handler'});
 	
 	my $self = [];
@@ -120,9 +118,7 @@ sub reset()
 
 	$self->[+HANDLER]->reset();
     
-    $self->frob_parser();
-
-	$self->[+PARSER] = XML::SAX::ParserFactory->parser
+	$self->[+PARSER] = XML::LibXML->new
 	(	
 		'Handler' => $self->[+HANDLER]
 	);
@@ -237,10 +233,7 @@ POE::Filter::XML - A POE Filter for parsing XML
 POE::Filter::XML provides POE with a completely encapsulated XML parsing 
 strategy for POE::Wheels that will be dealing with XML streams.
 
-POE::Filter::XML relies upon XML::SAX and XML::SAX::ParserFactory to acquire
-a parser for parsing XML. 
-
-The assumed parser is XML::LibXML::SAX
+The parser is XML::LibXML
 
 Default, the Filter will spit out POE::Filter::XML::Nodes because that is 
 what the default XML::SAX compliant Handler produces from the stream it is 

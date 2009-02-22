@@ -2,7 +2,7 @@ use 5.010;
 use warnings;
 use strict;
 
-use Test::More tests => 24;
+use Test::More tests => 26;
 
 BEGIN
 {
@@ -13,7 +13,14 @@ BEGIN
     use_ok( 'POE::Filter::XML::Utils' );
 }
 
-my $xml = '<stream><iq from="blah.com" type="result" id="abc123" to="blah@blah.com/foo"><service xmlns="jabber:iq:browse" type="jabber" name="Server" jid="blah.com"/></iq><presence to="blah@blah.com/foo" from="baz@blah.com/bar"/></stream>';
+my $xml = '<?xml version="1.0"?>
+<stream>
+<iq from="blah.com" type="result" id="abc123" to="blah@blah.com/foo">
+<service xmlns="jabber:iq:browse" type="jabber" name="Server" jid="blah.com"/>
+</iq>
+<presence to="blah@blah.com/foo" from="baz@blah.com/bar"/>
+<testnode>THIS IS SOME TEXT</testnode>
+</stream>';
 
 my $filter = POE::Filter::XML->new();
 
@@ -66,6 +73,12 @@ while(1)
             pass('Got presence 1/3');
             is($_->getAttribute('from'), 'baz@blah.com/bar', 'Got presence 2/3');
             is($_->getAttribute('to'), 'blah@blah.com/foo', 'Got presence 3/3');
+        }
+
+        when( sub { $_->nodeName() eq 'testnode' } )
+        {
+            pass('Got testnode 1/2');
+            is($_->textContent(), 'THIS IS SOME TEXT', 'Got testnode 2/2');
         }
     }
 }

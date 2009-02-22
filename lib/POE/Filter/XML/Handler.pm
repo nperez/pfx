@@ -5,6 +5,7 @@ const XNode POE::Filter::XML::Node
 use strict;
 use warnings;
 use POE::Filter::XML::Node;
+use base('XML::SAX::Base');
 
 our $VERSION = '0.35';
 
@@ -42,9 +43,6 @@ sub reset()
 	$self->{'depth'} = $self->{'notstreaming'} ? 0 : -1;
 	$self->{'count'} = 0;
 }
-
-sub start_document() { }
-sub end_document() { }
 
 sub start_element() 
 {
@@ -91,7 +89,7 @@ sub start_element()
 		    
 			# Some node within a fragment
 			my $kid = XNode->new($data->{'Name'});
-            $self->{'currnode'}->addChild($kid);
+            $self->{'currnode'}->appendChild($kid);
 			
 			foreach my $attrib (values %{$data->{'Attributes'}})
 			{
@@ -103,6 +101,8 @@ sub start_element()
 			$self->{'currnode'} = $kid;
 		}
 	}
+
+    $self->SUPER::start_element($data);
 }
 
 sub end_element()
@@ -134,18 +134,22 @@ sub end_element()
 	}
 
 	$self->{'depth'}--;
+    
+    $self->SUPER::end_element($data);
 }
 
 sub characters() 
 {
 	my($self, $data) = @_;
-
+    
 	if($self->{'depth'} == 0)
 	{
 		return;
 	}
 
-	$self->{'currnode'}->appendText($data);
+	$self->{'currnode'}->appendText($data->{'Data'});
+    
+    $self->SUPER::characters($data);
 }
 
 sub get_node()
