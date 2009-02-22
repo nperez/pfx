@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use POE::Filter::XML::Node;
 
-our $VERSION = '0.34';
+our $VERSION = '0.35';
 
 sub clone()
 {
@@ -54,11 +54,12 @@ sub start_element()
 	{	    
 		#start of a document: make and return the tag
 
-		my $start = XNode->new($data->{'Name'})->stream_start(1);
+		my $start = XNode->new($data->{'Name'});
+        $start->stream_start(1);
 		
 		foreach my $attrib (values %{$data->{'Attributes'}})
 		{
-			$start->attr($attrib->{'Name'}, $attrib->{'Value'});
+			$start->setAttribute($attrib->{'Name'}, $attrib->{'Value'});
 		}
 
 		push(@{$self->{'finished'}}, $start);
@@ -77,7 +78,7 @@ sub start_element()
 			
 			foreach my $attrib (values %{$data->{'Attributes'}})
 			{
-				$self->{'currnode'}->attr
+				$self->{'currnode'}->setAttribute
 				(
 					$attrib->{'Name'}, 
 					$attrib->{'Value'}
@@ -89,11 +90,12 @@ sub start_element()
 		} else {
 		    
 			# Some node within a fragment
-			my $kid = $self->{'currnode'}->insert_tag($data->{'Name'});
+			my $kid = XNode->new($data->{'Name'});
+            $self->{'currnode'}->addChild($kid);
 			
 			foreach my $attrib (values %{$data->{'Attributes'}})
 			{
-				$kid->attr($attrib->{'Name'}, $attrib->{'Value'});
+				$kid->setAttribute($attrib->{'Name'}, $attrib->{'Value'});
 			}
 
 			push(@{$self->{'parents'}}, $self->{'currnode'});
@@ -109,7 +111,8 @@ sub end_element()
 	
 	if($self->{'depth'} == 0)
 	{
-		my $end = XNode->new($data->{'Name'})->stream_end(1);
+		my $end = XNode->new($data->{'Name'});
+        $end->stream_end(1);
 		
 		push(@{$self->{'finished'}}, $end);
 		
@@ -142,8 +145,7 @@ sub characters()
 		return;
 	}
 
-	my $data2 = $self->{'currnode'}->data() . $data->{'Data'};
-	$self->{'currnode'}->data($data2);
+	$self->{'currnode'}->appendText($data);
 }
 
 sub get_node()

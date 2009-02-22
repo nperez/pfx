@@ -17,8 +17,7 @@ DESCRIPTION
     POE::Filter::XML relies upon XML::SAX and XML::SAX::ParserFactory to
     acquire a parser for parsing XML.
 
-    The assumed parser is XML::SAX::Expat::Incremental (Need a real push
-    parser)
+    The assumed parser is XML::LibXML::SAX
 
     Default, the Filter will spit out POE::Filter::XML::Nodes because that
     is what the default XML::SAX compliant Handler produces from the stream
@@ -71,15 +70,13 @@ PUBLIC METHODS
         the method to use.
 
 BUGS AND NOTES
-    The current XML::SAX::Expat::Incremental version introduces some ugly
-    circular references due to the way XML::SAX::Expat constructs itself (it
-    stores a references to itself inside the XML::Parser object it
-    constructs to get an OO-like interface within the callbacks passed to
-    it). Upon destroy, I clean these up with Scalar::Util::weaken and by
-    manually calling release() on the ExpatNB object created within
-    XML::SAX::Expat::Incremental. This is an ugly hack. If anyone finds some
-    subtle behavior I missed, let me know and I will drop XML::SAX support
-    all together going back to just plain-old XML::Parser.
+    The underlying parser was switched to XML::LibXML.
+
+    Also note that the PXF::Nodes returned are now subclassed from
+    LibXML::Element and that the underlying API for Nodes has changed
+    completely with out ANY compatibility at all. This was done for
+    performance reasons, and also to gain XPath capabilities on the nodes
+    returned.
 
     Meta filtering was removed. No one was using it and the increased level
     of indirection was a posible source of performance issues.
@@ -100,13 +97,6 @@ BUGS AND NOTES
     "stuff")
 
 AUTHOR
-    Copyright (c) 2003 - 2007 Nicholas Perez. Released and distributed under
+    Copyright (c) 2003 - 2009 Nicholas Perez. Released and distributed under
     the GPL.
-
-POD ERRORS
-    Hey! The above document had some coding errors, which are explained
-    below:
-
-    Around line 299:
-        =back doesn't take any parameters, but you said =back 4
 

@@ -7,9 +7,8 @@ our $VERSION = '0.35';
 use XML::SAX;
 use XML::SAX::ParserFactory;
 use POE::Filter::XML::Handler;
-use Scalar::Util qw/weaken/;
 use Carp;
-$XML::SAX::ParserPackage = "XML::SAX::Expat::Incremental";
+$XML::SAX::ParserPackage = "XML::LibXML::SAX";
 
 # This is to make Filter::Stackable happy
 use base('POE::Filter');
@@ -77,19 +76,20 @@ sub new()
 	$self->[+CALLBACK] = $config->{'callback'};
 	$self->[+NOTSTREAMING] = $config->{'notstreaming'};
 	
-	weaken($self->[+PARSER]);
-
-	eval
-	{
-		$self->[+PARSER]->parse_string(join("\n",@{$self->[+BUFFER]}));
-	
-	}; 
-	
-	if ($@)
-	{
-		warn $@;
-		$self->[+CALLBACK]->($@);
-	}
+    if(@{$self->[+BUFFER]})
+    {
+        eval
+        {
+            $self->[+PARSER]->parse_chunk(join("\n",@{$self->[+BUFFER]}));
+        
+        }; 
+        
+        if ($@)
+        {
+            warn $@;
+            $self->[+CALLBACK]->($@);
+        }
+    }
 
 	bless($self, $class);
 	return $self;
@@ -97,22 +97,7 @@ sub new()
 
 sub DESTROY
 {
-	$_[0]->frob_parser();
 	$_[0]->[+HANDLER] = undef;
-}
-
-sub frob_parser()
-{
-    my $self = shift;
-
-    #HACK: stupid circular references in 3rd party modules
-	#We need to weaken/break these or the damn parser leaks
-	$self->[+PARSER]->{'_expat_nb_obj'}->release()
-		if defined($self->[+PARSER]->{'_expat_nb_obj'});
-	weaken($self->[+PARSER]->{'_expat_nb_obj'});
-	weaken($self->[+PARSER]->{'_xml_parser_obj'}->{'__XSE'});
-	
-	$self->[+PARSER] = undef;
 }
 
 sub callback()
@@ -183,7 +168,7 @@ sub get_one()
 
 			eval
 			{
-				$self->[+PARSER]->parse_string($line);
+				$self->[+PARSER]->parse_chunk($line);
 			};
 			
 			if($@)
@@ -198,6 +183,7 @@ sub get_one()
 				
 				if($node->stream_end() or $self->[+NOTSTREAMING])
 				{
+                    $self->[+PARSER]->parse_chunk('', 1);
 					$self->reset();
 				}
 				
@@ -220,7 +206,7 @@ sub put()
 		{
 			$self->reset();
 		}
-		push(@$output, $node->to_str());
+		push(@$output, $node->toString());
 	}
 	
 	return($output);
@@ -254,7 +240,7 @@ strategy for POE::Wheels that will be dealing with XML streams.
 POE::Filter::XML relies upon XML::SAX and XML::SAX::ParserFactory to acquire
 a parser for parsing XML. 
 
-The assumed parser is XML::SAX::Expat::Incremental (Need a real push parser)
+The assumed parser is XML::LibXML::SAX
 
 Default, the Filter will spit out POE::Filter::XML::Nodes because that is 
 what the default XML::SAX compliant Handler produces from the stream it is 
@@ -306,18 +292,16 @@ callback() is an internal accessor to the coderef used when a parsing error
 occurs. If you want to place stateful nformation into a closure that gets 
 executed when a parsering error happens, this is the method to use. 
 
-=back 4
+=back
 
 =head1 BUGS AND NOTES
 
-The current XML::SAX::Expat::Incremental version introduces some ugly circular
-references due to the way XML::SAX::Expat constructs itself (it stores a 
-references to itself inside the XML::Parser object it constructs to get an
-OO-like interface within the callbacks passed to it). Upon destroy, I clean
-these up with Scalar::Util::weaken and by manually calling release() on the
-ExpatNB object created within XML::SAX::Expat::Incremental. This is an ugly
-hack. If anyone finds some subtle behavior I missed, let me know and I will
-drop XML::SAX support all together going back to just plain-old XML::Parser.
+The underlying parser was switched to XML::LibXML.
+
+Also note that the PXF::Nodes returned are now subclassed from LibXML::Element
+and that the underlying API for Nodes has changed completely with out ANY 
+compatibility at all. This was done for performance reasons, and also to gain
+XPath capabilities on the nodes returned.
 
 Meta filtering was removed. No one was using it and the increased level of
 indirection was a posible source of performance issues.
@@ -337,7 +321,7 @@ Arguments passed to new() must be in name/value pairs (ie. 'BUFFER' => "stuff")
 
 =head1 AUTHOR
 
-Copyright (c) 2003 - 2007 Nicholas Perez. 
+Copyright (c) 2003 - 2009 Nicholas Perez. 
 Released and distributed under the GPL.
 
 =cut

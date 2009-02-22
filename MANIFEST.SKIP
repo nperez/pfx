@@ -24,6 +24,7 @@
 # Avoid temp and backup files.
 ~$
 \.tmp$
+\.swp$
 \.old$
 \.bak$
 \#$
