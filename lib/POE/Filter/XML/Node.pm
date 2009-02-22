@@ -15,9 +15,20 @@ my $id = 0;
 
 sub new()
 {
-    my $self = __PACKAGE__->SUPER::new($_[1]);
-    bless($self, $_[0]);
+    my $class = shift(@_);
+    my $name = shift(@_);
+    my $attrs = shift(@_);
+
+    my $self = __PACKAGE__->SUPER::new($name);
+    
+    bless($self, $class);
     register($self);
+    
+    if(defined($attrs))
+    {
+        $self->setAttributes($_[2]);
+    }
+    
     return $self;
 }
 
@@ -25,11 +36,16 @@ sub cloneNode()
 {
 	my $self = shift(@_);
     my $deep = shift(@_);
+    
     my $clone = $self->SUPER::cloneNode($deep);
+    
     _register($clone, ref($self));
+    
     $clone->stream_start($self->stream_start());
     $clone->stream_end($self->stream_end());
+    
     _clone($clone, ref($self));
+    
     return $clone;
 }
 
@@ -55,8 +71,10 @@ sub _register
 {
     my $node = shift(@_);
     my $class = shift(@_);
+    
     bless($node, $class);
     register($node);
+    
     return undef;
 }
 
@@ -87,6 +105,41 @@ sub getAttributes()
     }
 
     return $attributes;
+}
+
+sub appendChild()
+{
+    my $self = shift(@_);
+    my $child = shift(@_);
+    my $attrs = shift(@_);
+
+    my $node;
+
+    if(ref($child) eq ref($self)))
+    {
+        $node = $self->SUPER::appendChild($child);
+    }
+    else
+    {
+        $node = $self->addNewChild($child);
+    }
+    
+    _register($node);
+
+    if(defined($attrs))
+    {
+        $node->setAttributes($attrs);
+    }
+
+    return $node;
+}
+
+sub getSingleChildByTagName()
+{
+    my $self = shift(@_);
+    my $name = shift(@_);
+
+    return ($self->getChildrenByTagName($name))[0];
 }
 						
 sub getChildrenHash()
