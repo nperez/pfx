@@ -1,3 +1,8 @@
+2009-04-06 NPEREZ <nperez@cpan.org>
+	
+	* Version 0.36
+	* fixed a bug dealing with subclassing PFX::Node further
+
 2009-01-04 NPEREZ <nperez@cpan.org>
 	
 	* Version bumped to 0.35

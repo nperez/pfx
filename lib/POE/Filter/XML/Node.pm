@@ -6,7 +6,7 @@ use XML::LibXML(':libxml');
 use Class::InsideOut('register', 'public');
 use base('XML::LibXML::Element', 'Exporter');
 
-our $VERSION = '0.35';
+our $VERSION = '0.36';
 
 public 'stream_start' => my %stream_start;
 public 'stream_end' => my %stream_end;
@@ -109,7 +109,7 @@ sub appendChild()
 
     my $node;
 
-    if(ref($child) eq ref($self))
+    if(ref($child) and $child->isa(__PACKAGE__))
     {
         $self->SUPER::appendChild($child);
         
@@ -125,7 +125,7 @@ sub appendChild()
         $node = POE::Filter::XML::Node->new($child, $attrs);
         $self->appendChild($node);
     }
-
+    
     return $node;
 }
 
@@ -135,6 +135,7 @@ sub getSingleChildByTagName()
     my $name = shift(@_);
     
     my $node = ($self->getChildrenByTagName($name))[0];
+    return undef if not defined($node);
     _bless_register($node, ref($self));
     return $node;
 }

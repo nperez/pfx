@@ -7,7 +7,7 @@ use warnings;
 use POE::Filter::XML::Node;
 use base('XML::SAX::Base');
 
-our $VERSION = '0.35';
+our $VERSION = '0.36';
 
 sub clone()
 {

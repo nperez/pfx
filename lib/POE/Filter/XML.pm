@@ -2,7 +2,7 @@ package POE::Filter::XML;
 use strict;
 use warnings;
 
-our $VERSION = '0.35';
+our $VERSION = '0.36';
 
 use XML::LibXML;
 use POE::Filter::XML::Handler;
