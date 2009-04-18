@@ -7,7 +7,6 @@ license: gpl
 resources:
   license: http://opensource.org/licenses/gpl-license.php
 requires:
-  Filter::Template: 1.02
   POE: 1.003
   XML::LibXML: 1.69
   XML::SAX: 0.16
