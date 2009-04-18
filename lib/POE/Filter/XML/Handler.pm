@@ -1,6 +1,4 @@
 package POE::Filter::XML::Handler;
-use Filter::Template; 
-const XNode POE::Filter::XML::Node
 
 use strict;
 use warnings;
@@ -52,7 +50,7 @@ sub start_element()
 	{	    
 		#start of a document: make and return the tag
 
-		my $start = XNode->new($data->{'Name'});
+		my $start = POE::Filter::XML::Node->new($data->{'Name'});
         $start->stream_start(1);
 		
 		foreach my $attrib (values %{$data->{'Attributes'}})
@@ -72,7 +70,7 @@ sub start_element()
 		# Top level fragment
 		if($self->{'depth'} == 1)
 		{
-			$self->{'currnode'} = XNode->new($data->{'Name'});
+			$self->{'currnode'} = POE::Filter::XML::Node->new($data->{'Name'});
 			
 			foreach my $attrib (values %{$data->{'Attributes'}})
 			{
@@ -88,7 +86,7 @@ sub start_element()
 		} else {
 		    
 			# Some node within a fragment
-			my $kid = XNode->new($data->{'Name'});
+			my $kid = POE::Filter::XML::Node->new($data->{'Name'});
             $self->{'currnode'}->appendChild($kid);
 			
 			foreach my $attrib (values %{$data->{'Attributes'}})
@@ -111,7 +109,7 @@ sub end_element()
 	
 	if($self->{'depth'} == 0)
 	{
-		my $end = XNode->new($data->{'Name'});
+		my $end = POE::Filter::XML::Node->new($data->{'Name'});
         $end->stream_end(1);
 		
 		push(@{$self->{'finished'}}, $end);

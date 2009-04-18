@@ -10,7 +10,6 @@ Module::Build->new
 		'POE'	=>	'1.003',
 		'XML::SAX' => '0.16',
 		'Filter::Template' => '1.02',
-        'Class::InsideOut' => '1.09',
         'XML::LibXML' => '1.69',
 	}
 )->create_build_script();
