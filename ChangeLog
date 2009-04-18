@@ -1,3 +1,11 @@
+2009-04-18 NPEREZ <nperez@cpan.org>
+	
+	* Version 0.37
+	* Remove dependency on Class::InsideOut
+	* Remove dependency on Filter::Template
+	* Node is now using fieldhash + state
+	* Repo is now hosted at github
+
 2009-04-06 NPEREZ <nperez@cpan.org>
 	
 	* Version 0.36
