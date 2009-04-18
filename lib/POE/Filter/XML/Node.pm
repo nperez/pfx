@@ -2,18 +2,14 @@ package POE::Filter::XML::Node;
 use warnings;
 use strict;
 
+use 5.010;
+use Hash::Util('fieldhash');
 use XML::LibXML(':libxml');
-use Class::InsideOut('register', 'public');
 use base('XML::LibXML::Element', 'Exporter');
 
-our $VERSION = '0.36';
-
-public 'stream_start' => my %stream_start;
-public 'stream_end' => my %stream_end;
+our $VERSION = '0.37';
 
 our @EXPORT = qw/ &ordain /;
-
-my $id = 0;
 
 sub new()
 {
@@ -23,7 +19,7 @@ sub new()
 
     my $self = $class->SUPER::new($name);
     
-    _bless_register($self, $class);
+    bless($self, $class);
     
     if(defined($attrs))
     {
@@ -33,6 +29,34 @@ sub new()
     return $self;
 }
 
+sub stream_start()
+{
+    my $self = shift(@_);
+    fieldhash state %stream_start;
+    if(@_)
+    {
+        $stream_start{$self} = shift(@_);
+    }
+    else
+    {
+        return $stream_start{$self};
+    }
+}
+
+sub stream_end()
+{
+    my $self = shift(@_);
+    fieldhash state %stream_end;
+    if(@_)
+    {
+        $stream_end{$self} = shift(@_);
+    }
+    else
+    {
+        return $stream_end{$self};
+    }
+}
+
 sub cloneNode()
 {
 	my $self = shift(@_);
@@ -40,7 +64,7 @@ sub cloneNode()
     
     my $clone = $self->SUPER::cloneNode($deep);
     
-    _bless_register($clone, ref($self));
+    bless($clone, ref($self));
     
     $clone->stream_start($self->stream_start());
     $clone->stream_end($self->stream_end());
@@ -51,18 +75,7 @@ sub cloneNode()
 sub ordain
 {
     my $node = shift(@_);
-    return _bless_register($node, __PACKAGE__);
-}
-
-sub _bless_register
-{
-    my $node = shift(@_);
-    my $class = shift(@_);
-    
-    bless($node, $class);
-    register($node);
-    
-    return $node;
+    return bless($node, __PACKAGE__);
 }
 
 sub setAttributes()
@@ -136,7 +149,7 @@ sub getSingleChildByTagName()
     
     my $node = ($self->getChildrenByTagName($name))[0];
     return undef if not defined($node);
-    _bless_register($node, ref($self));
+    bless($node, ref($self));
     return $node;
 }
 						
@@ -148,7 +161,7 @@ sub getChildrenHash()
 
     foreach my $child ($self->getChildrenByTagName("*"))
     {
-        _bless_register($child, ref($self));
+        bless($child, ref($self));
 
         my $name = $child->nodeName();
         
