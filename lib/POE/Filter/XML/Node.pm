@@ -7,7 +7,7 @@ use Hash::Util('fieldhash');
 use XML::LibXML(':libxml');
 use base('XML::LibXML::Element', 'Exporter');
 
-our $VERSION = '0.37';
+our $VERSION = '0.38';
 
 our @EXPORT = qw/ &ordain /;
 

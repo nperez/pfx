@@ -8,7 +8,7 @@ use POE::Filter::XML::NS qw/ :IQ :JABBER /;
 
 require Exporter;
 
-our $VERSION = '0.37';
+our $VERSION = '0.38';
 
 our @ISA = qw/ Exporter /;
 our @EXPORT = qw/ get_config get_reply get_error get_user get_host

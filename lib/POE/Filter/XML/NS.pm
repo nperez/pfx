@@ -3,7 +3,7 @@ package POE::Filter::XML::NS;
 use strict;
 use warnings;
 
-our $VERSION = '0.37';
+our $VERSION = '0.38';
 
 use constant {
 	XMLNS_STREAM => 'http://etherx.jabber.org/streams',

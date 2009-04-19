@@ -1,6 +1,6 @@
 ---
 name: POE-Filter-XML
-version: 0.37
+version: 0.38
 author: []
 abstract: A POE Filter for parsing XML
 license: gpl
@@ -14,19 +14,19 @@ requires:
 provides:
   POE::Filter::XML:
     file: lib/POE/Filter/XML.pm
-    version: 0.37
+    version: 0.38
   POE::Filter::XML::Handler:
     file: lib/POE/Filter/XML/Handler.pm
-    version: 0.37
+    version: 0.38
   POE::Filter::XML::NS:
     file: lib/POE/Filter/XML/NS.pm
-    version: 0.37
+    version: 0.38
   POE::Filter::XML::Node:
     file: lib/POE/Filter/XML/Node.pm
-    version: 0.37
+    version: 0.38
   POE::Filter::XML::Utils:
     file: lib/POE/Filter/XML/Utils.pm
-    version: 0.37
+    version: 0.38
 generated_by: Module::Build version 0.280801
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html
