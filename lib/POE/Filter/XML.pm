@@ -1,224 +1,10 @@
 package POE::Filter::XML;
-use strict;
-use warnings;
 
-our $VERSION = '0.38';
+#ABSTRACT: XML parsing for the POE framework
 
-use XML::LibXML;
-use POE::Filter::XML::Handler;
-use Carp;
+use MooseX::Declare;
 
-# This is to make Filter::Stackable happy
-use base('POE::Filter');
-
-use constant
-{
-	'BUFFER' => 0,
-	'CALLBACK' => 1,
-	'HANDLER' => 2,
-	'PARSER' => 3,
-	'NOTSTREAMING' => 4,
-};
-
-sub clone()
-{
-	my ($self) = @_;
-	
-	return POE::Filter::XML->new(
-		'buffer' => $self->[+BUFFER], 
-		'callback' => $self->[+CALLBACK],
-		'handler' => $self->[+HANDLER]->clone(),
-		'notstreaming' => $self->[+NOTSTREAMING]);
-}
-
-sub new() 
-{
-	my ($class) = shift(@_);
-	
-	if (@_ & 1)
-	{
-		Carp::confess('Please provide an even number of arguments');
-	}
-	
-	my $config = {};
-	while($#_ != -1)
-	{
-		my $key = lc(shift(@_));
-		my $val = shift(@_);
-		$config->{$key} = $val;
-	}	
-	
-	unless($config->{'buffer'})
-	{
-		$config->{'buffer'} = [];
-	}
-	
-	unless($config->{'callback'})
-	{
-		$config->{'callback'} = sub{Carp::confess('Parsing error happened!');};
-	}
-	
-	unless($config->{'handler'})
-	{
-		$config->{'handler'} = POE::Filter::XML::Handler->new(
-			$config->{'notstreaming'});
-	}
-	
-	my $parser = XML::LibXML->new(
-		'Handler' => $config->{'handler'});
-	
-	my $self = [];
-	$self->[+BUFFER] = $config->{'buffer'};
-	$self->[+HANDLER] = $config->{'handler'};
-	$self->[+PARSER] = $parser;
-	$self->[+CALLBACK] = $config->{'callback'};
-	$self->[+NOTSTREAMING] = $config->{'notstreaming'};
-	
-    if(@{$self->[+BUFFER]})
-    {
-        eval
-        {
-            $self->[+PARSER]->parse_chunk(join("\n",@{$self->[+BUFFER]}));
-        
-        }; 
-        
-        if ($@)
-        {
-            warn $@;
-            $self->[+CALLBACK]->($@);
-        }
-    }
-
-	bless($self, $class);
-	return $self;
-}
-
-sub DESTROY
-{
-	$_[0]->[+HANDLER] = undef;
-}
-
-sub callback()
-{
-	my $self = shift(@_);
-
-	if(@_ < 1)
-	{
-		return $self->[+CALLBACK];
-	
-	} else {
-
-		$self->[+CALLBACK] = shift(@_);
-	}
-}
-
-sub reset()
-{
-	my ($self) = @_;
-
-	$self->[+HANDLER]->reset();
-    
-	$self->[+PARSER] = XML::LibXML->new
-	(	
-		'Handler' => $self->[+HANDLER]
-	);
-
-	$self->[+BUFFER] = [];
-}
-
-sub get_one_start()
-{
-	my ($self, $raw) = @_;
-	if (defined $raw) 
-	{
-		foreach my $raw_data (@$raw) 
-		{
-			push
-			(
-				@{$self->[+BUFFER]}, 
-				split
-				(
-					/(?=\015?\012|\012\015?)/s, 
-					$raw_data
-				)
-			);
-		}
-	}
-}
-
-sub get_one()
-{
-	my ($self) = @_;
-
-	if($self->[+HANDLER]->finished_nodes())
-	{
-		return [$self->[+HANDLER]->get_node()];
-	
-	} else {
-		
-		for(0..$#{$self->[+BUFFER]})
-		{
-			my $line = shift(@{$self->[+BUFFER]});
-			
-			next unless($line);
-
-			eval
-			{
-				$self->[+PARSER]->parse_chunk($line);
-			};
-			
-			if($@)
-			{
-				warn $@;
-				&{ $self->[+CALLBACK] }($@);
-			}
-
-			if($self->[+HANDLER]->finished_nodes())
-			{
-				my $node = $self->[+HANDLER]->get_node();
-				
-				if($node->stream_end() or $self->[+NOTSTREAMING])
-				{
-                    $self->[+PARSER]->parse_chunk('', 1);
-					$self->reset();
-				}
-				
-				return [$node];
-			}
-		}
-		return [];
-	}
-}
-
-sub put()
-{
-	my($self, $nodes) = @_;
-	
-	my $output = [];
-
-	foreach my $node (@$nodes) 
-	{
-		if($node->stream_start())
-		{
-			$self->reset();
-		}
-		push(@$output, $node->toString());
-	}
-	
-	return($output);
-}
-
-1;
-
-__END__
-
-=pod
-
-=head1 NAME
-
-POE::Filter::XML - A POE Filter for parsing XML
-
-=head1 SYSNOPSIS
+=head1 SYNOPSIS
 
  use POE::Filter::XML;
  my $filter = POE::Filter::XML->new();
@@ -228,47 +14,215 @@ POE::Filter::XML - A POE Filter for parsing XML
 	InputEvent	=> 'input_event',
  );
 
-=head1 DESCRIPTION
+=cut
 
-POE::Filter::XML provides POE with a completely encapsulated XML parsing 
-strategy for POE::Wheels that will be dealing with XML streams.
+class POE::Filter::XML {
+    use MooseX::NonMoose;
+    extends 'Moose::Object','POE::Filter';
+    
+    use Carp;
+    use Try::Tiny;
+    use XML::LibXML;
+    use POE::Filter::XML::Handler;
+    use Moose::Util::TypeConstraints;
+    use MooseX::Types::Moose(':all');
+    
+=attribute_private buffer
 
-The parser is XML::LibXML
+    is: ro, isa: ArrayRef, traits: Array
 
-Default, the Filter will spit out POE::Filter::XML::Nodes because that is 
-what the default XML::SAX compliant Handler produces from the stream it is 
-given. You are of course encouraged to override the default Handler for your 
-own purposes if you feel POE::Filter::XML::Node to be inadequate.
+buffer holds the raw data to be parsed. Raw data should be split on network
+new lines before being added to the buffer. Access to this attribute is
+provided by the following methods:
 
-Also, Filter requires POE::Filter::XML::Nodes for put(). If you are wanting to
-send raw XML, it is recommened that you subclass the Filter and override put()
+    handles =>
+    {
+        has_buffer => 'count',
+        all_buffer => 'elements',
+        push_buffer => 'push',
+        shift_buffer => 'shift',
+        join_buffer => 'join',
+    }
 
-=head1 PUBLIC METHODS
+=cut
 
-Since POE::Filter::XML follows the POE::Filter API look to POE::Filter for 
-documentation. Deviations from Filter API will be covered here.
+    has buffer =>
+    (
+        is => 'ro',
+        traits => [ 'Array' ],
+        isa => ArrayRef,
+        lazy => 1,
+        clearer => '_clear_buffer',
+        default => sub { [] },
+        handles =>
+        {
+            has_buffer => 'count',
+            all_buffer => 'elements',
+            push_buffer => 'push',
+            shift_buffer => 'shift',
+            join_buffer => 'join',
+        }
+    );
 
-=over 4 
+=attribute_private callback
 
-=item new()
+    is: ro, isa: CodeRef
 
-new() accepts a total of four(4) named arguments that are all optional: 
-(1) 'BUFFER': a string that is XML waiting to be parsed (i.e. xml received from
-the wheel before the Filter was instantiated), (2) 'CALLBACK': a coderef to be
-executed upon a parsing error, (3) 'HANDLER': a XML::SAX compliant Handler, or
-(4) 'NOTSTREAMING': boolean telling the filter to not process incoming XML as
-a stream but as single documents. 
+callback holds the CodeRef to be call in the event that there is an exception
+generated while parsing content. By default it holds a CodeRef that simply
+calls Carp::confess.
 
-If no options are specified, then a default coderef containing a simple
-Carp::confess is generated, a new instance of POE::Filter::XML::Handler is 
-used, and activated in streaming mode.
+=cut
 
-=item reset()
+    has callback =>
+    (
+        is => 'ro', 
+        isa => CodeRef,
+        lazy => 1,
+        default => sub { Carp::confess('Parsing error happened: '. shift) },
+    );
+
+=attribute_private handler
+
+    is: ro, isa: POE::Filter::XML::Handler
+
+handler holds the SAX handler to be used for processing events from the parser.
+By default POE::Filter::XML::Handler is instantiated and used. 
+
+The L</not_streaming> attribute is passed to the constructor of Handler.
+
+=cut
+
+    has handler =>
+    (
+        is => 'ro',
+        isa => class_type('POE::Filter::XML::Handler'),
+        lazy => 1,
+        builder => '_build_handler',
+        handles =>
+        {
+            '_reset_handler' => 'reset',
+            'finished_nodes' => 'has_finished_nodes',
+            'get_node' => 'get_finished_node',
+        }
+    );
+
+=attribute_private parser
+
+    is: ro, isa: XML::LibXML
+
+parser holds an instance of the XML::LibXML parser. The L</handler> attribute
+is passed to the constructor of XML::LibXML.
+
+=cut
+
+    has parser =>
+    (
+        is => 'ro',
+        isa => class_type('XML::LibXML'),
+        lazy => 1,
+        builder => '_build_parser',
+        clearer => '_clear_parser'
+    );
+
+=attribute_public not_streaming
+
+    is: ro, isa: Bool, default: false
+
+Setting the not_streaming attribute to true via new() will put this filter into
+non-streaming mode, meaning that whole documents are parsed before nodes are
+returned. This is handy for XMLRPC or other short documents.
+
+=cut
+
+    has not_streaming =>
+    (
+        is => 'ro',
+        isa => Bool,
+        default => 0,
+    );
+
+    method _build_handler {
+        POE::Filter::XML::Handler->new(not_streaming => $self->not_streaming)
+    }
+    
+    method _build_parser {
+        XML::LibXML->new(Handler => $self->handler)
+    }
+
+=class_method BUILDARGS
+
+    (ClassName $class: @args) returns (HashRef)
+
+BUILDARGS is provided to continue parsing the old style ALL CAPS arguments. If
+any ALL CAPS argument is detected, it will warn very loudly about deprecated
+usage.
+
+=cut
+
+    method BUILDARGS(ClassName $class: @args) returns (HashRef) {
+    
+        my $config = {};
+        my $flag = 0;
+        while($#args != -1)
+        {
+            my $key = shift(@args);
+            if($key =~ m/[A-Z]*/)
+            {
+                $flag++;
+                $key = lc($key);
+            }
+
+            my $val = shift(@args);
+            $config->{$key} = $val;
+        }
+        
+        if($flag)
+        {
+            Carp::cluck
+            (
+                q|ALL CAPS usage of parameters to the constructor |.
+                q|is DEPRECATED. Please correct this usage soon. Next |.
+                q|version will NOT support these arguments|
+            );
+        }
+
+        return $config;
+    }
+
+=method_private BUILD
+
+A BUILD method is provided to parse the initial buffer (if any was included
+when constructing the filter).
+
+=cut
+
+    method BUILD {
+
+        if($self->has_buffer)
+        {
+            try
+            {
+                $self->parser->parse_chunk($self->join_buffer("\n"));
+            
+            }
+            catch
+            {
+                $self->callback->($_);
+            }
+            finally
+            {
+                $self->_clear_buffer();
+            }
+        }
+    }
+
+=method_protected reset
 
 reset() is an internal method that gets called when either a stream_start(1)
-POE::Filter::XML::Node gets placed into the filter via put(), or when a
+POE::Filter::XML::Node gets placed into the filter via L</put>, or when a
 stream_end(1) POE::Filter::XML::Node is pulled out of the queue of finished
-Nodes via get_one(). This facilitates automagical behavior when using the 
+Nodes via L</get_one>. This facilitates automagical behavior when using the 
 Filter within the XMPP protocol that requires many new stream initiations.
 This method is also called after every document when not in streaming mode.
 Useful for handling XMLRPC processing.
@@ -276,45 +230,121 @@ Useful for handling XMLRPC processing.
 This method really should never be called outside of the Filter, but it is 
 documented here in case the Filter is used outside of the POE context.
 
-Internally reset() gets another parser, calls reset() on the stored handler
-and then deletes any data in the buffer.
+=cut
 
-=item callback()
+    method reset {
+        
+        $self->_reset_handler();
+        $self->_clear_parser();
+        $self->_clear_buffer();
+    }
 
-callback() is an internal accessor to the coderef used when a parsing error 
-occurs. If you want to place stateful nformation into a closure that gets 
-executed when a parsering error happens, this is the method to use. 
+=method_public get_one_start
 
-=back
+    (ArrayRef $raw?)
 
-=head1 BUGS AND NOTES
-
-The underlying parser was switched to XML::LibXML.
-
-Also note that the PXF::Nodes returned are now subclassed from LibXML::Element
-and that the underlying API for Nodes has changed completely with out ANY 
-compatibility at all. This was done for performance reasons, and also to gain
-XPath capabilities on the nodes returned.
-
-Meta filtering was removed. No one was using it and the increased level of
-indirection was a posible source of performance issues.
-
-put() now requires POE::Filter::XML::Nodes. Raw XML text can no longer be
-put() into the stream without subclassing the Filter and overriding put().
-
-reset() semantics were properly worked out to now be automagical and
-consistent. Thanks Eric Waters (ewaters@uarc.com).
-
-A new argument was added to the constructor to allow for multiple single 
-document processing instead of one coherent stream. This allows for inbound 
-XMLRPC requests to be properly parsed automagically without manually touching 
-the reset() method on the Filter.
-
-Arguments passed to new() must be in name/value pairs (ie. 'BUFFER' => "stuff")
-
-=head1 AUTHOR
-
-Copyright (c) 2003 - 2009 Nicholas Perez. 
-Released and distributed under the GPL.
+This method is part of the POE::Filter API. See L<POE::Filter/get_one_start>
+for an explanation of its usage.
 
 =cut
+
+    method get_one_start(ArrayRef $raw?) {
+        
+        if (defined $raw) 
+        {
+            foreach my $raw_data (@$raw) 
+            {
+                $self->push_buffer(split(/(?=\x0a?\x0d|\x0d\x0a?)/s, $raw_data));
+            }
+        }
+    }
+
+=method_public get_one
+
+    returns (ArrayRef)
+
+This method is part of the POE::Filter API. See L<POE::Filter/get_one> for an
+explanation of its usage.
+
+=cut
+
+    method get_one returns (ArrayRef) {
+
+        if($self->finished_nodes())
+        {
+            return [$self->get_node()];
+        
+        }
+        else
+        {    
+            while($self->has_buffer())
+            {
+                my $line = $self->shift_buffer();
+
+                try
+                {
+                    $self->parser->parse_chunk($line);
+                }
+                catch
+                {
+                    $self->callback->($_);
+                };
+
+                if($self->finished_nodes())
+                {
+                    my $node = $self->get_node();
+                    
+                    if($node->stream_end() or $self->not_streaming)
+                    {
+                        $self->parser->parse_chunk('', 1);
+                        $self->reset();
+                    }
+                    
+                    return [$node];
+                }
+            }
+            return [];
+        }
+    }
+
+=method_public put
+
+    (ArrayRef $nodes) returns (ArrayRef)
+
+This method is part of the POE::Filter API. See L<POE::Filter/put> for an
+explanation of its usage.
+
+=cut
+
+    method put(ArrayRef $nodes) returns (ArrayRef) {
+        
+        my $output = [];
+
+        foreach my $node (@$nodes) 
+        {
+            if($node->stream_start())
+            {
+                $self->reset();
+            }
+            push(@$output, $node->toString());
+        }
+        
+        return $output;
+    }
+}
+1;
+__END__
+
+=head1 DESCRIPTION
+
+POE::Filter::XML provides POE with a completely encapsulated XML parsing 
+strategy for POE::Wheels that will be dealing with XML streams.
+
+The parser is XML::LibXML
+
+=head1 NOTES
+
+This latest version got a major overhaul. Everything is Moose-ified using
+MooseX::Declare to provide more rigorous constraint checking, real accessors,
+and greatly simplified internals. It should be backwards compatible (even the
+constructor arguments). If not, please file a bug report with a test case.

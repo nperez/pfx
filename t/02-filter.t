@@ -1,17 +1,8 @@
-use 5.010;
 use warnings;
 use strict;
 
-use Test::More tests => 32;
-
-BEGIN
-{
-	use_ok( 'POE::Filter::XML' );
-    use_ok( 'POE::Filter::XML::Handler' );
-    use_ok( 'POE::Filter::XML::Node' );
-    use_ok( 'POE::Filter::XML::NS' );
-    use_ok( 'POE::Filter::XML::Utils' );
-}
+use Test::More;
+use POE::Filter::XML;
 
 my $xml = '<?xml version="1.0"?>
 <stream>
@@ -63,7 +54,7 @@ while(1)
 
         my $child = $node->getSingleChildByTagName('service');
         ok(defined($child), 'Got iq 7/13');
-        is(ref($child), 'POE::Filter::XML::Node', 'Got stream end 8/13');            
+        is(ref($child), 'POE::Filter::XML::Node', 'Got iq 8/13');            
         is($child->getAttribute('type'), 'jabber', 'Got iq 9/13');
         is($child->getAttribute('name'), 'Server', 'Got iq 10/13');
         is($child->getAttribute('jid'), 'blah.com', 'Got iq 11/13');
@@ -88,4 +79,4 @@ while(1)
     }
 }
 
-1;
+done_testing();

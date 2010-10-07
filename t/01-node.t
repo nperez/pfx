@@ -1,17 +1,9 @@
-use 5.010;
 use warnings;
 use strict;
 
-use Test::More tests => 52;
+use Test::More;
 
-BEGIN
-{
-	use_ok( 'POE::Filter::XML' );
-    use_ok( 'POE::Filter::XML::Handler' );
-    use_ok( 'POE::Filter::XML::Node' );
-    use_ok( 'POE::Filter::XML::NS' );
-    use_ok( 'POE::Filter::XML::Utils' );
-}
+use POE::Filter::XML::Node;
 
 my $node = POE::Filter::XML::Node->new('test');
 
@@ -38,9 +30,6 @@ for(0..4)
 my $node2 = $node->getSingleChildByTagName('child1');
 is(ref($node2), 'POE::Filter::XML::Node', 'Check getSingleChildByTagName returns a proper subclass');
 
-my $node3 = ordain(($node->getChildrenByTagName('child2'))[0]);
-is(ref($node3), 'POE::Filter::XML::Node', 'Check ordain returns a Node');
-
 my $hash = $node->getChildrenHash();
 
 is(ref($hash->{'child1'}), 'ARRAY', 'Check children1 are in an array');
@@ -56,12 +45,12 @@ foreach my $value (values %$hash)
     }
 }
 
-$node->stream_start(1);
+$node->_set_stream_start(1);
 is($node->stream_start(), 1, 'Check stream_start');
 is($node->toString(), '<test to="foo@other" from="bar@other" type="get">', 'Check toString() for stream_start');
 
-$node->stream_start(0);
-$node->stream_end(1);
+$node->_set_stream_start(0);
+$node->_set_stream_end(1);
 is($node->stream_end(), 1, 'Check stream_end');
 is($node->toString(), '</test>', 'Check toString() for stream_end');
 
@@ -81,20 +70,9 @@ foreach my $value (values %$clonehash)
 is($clone->stream_start(), $node->stream_start(), 'Check clone semantics for stream_start');
 is($clone->stream_end(), $node->stream_end(), 'Check clone semantics for stream_end');
 
-$clone->stream_end(0);
-$node->stream_end(0);
+$clone->_set_stream_end(0);
+$node->_set_stream_end(0);
 
 is($clone->toString(), $node->toString(), 'Check the clone against the original');
 
-my $nodewithattributes = POE::Filter::XML::Node->new('newnode', [ 'xmlns', 'test:namespace', 'foo', 'foovalue' ]);
-
-is($nodewithattributes->nodeName(), 'newnode', 'Check alternate constructor 1/4');
-is($nodewithattributes->getAttribute('foo'), 'foovalue', 'Check alternate constructor 2/4');
-ok(scalar($nodewithattributes->getNamespaces()), 'Check alternate constructor 3/4');
-is(($nodewithattributes->getNamespaces())[0]->value(), 'test:namespace', 'Check alternate constructor 4/4'); 
-is($nodewithattributes->toString(), '<newnode xmlns="test:namespace" foo="foovalue"/>', 'Check toString() on alternately constructed node');
-
-my $subnode = $nodewithattributes->appendChild('testnode', ['xmlns', 'test:foo', 'attrib', 'blah']);
-is(ref($subnode), 'POE::Filter::XML::Node', 'Check appendChild override returns the proper subclass');
-ok(scalar($subnode->getNamespaces()), 'Check subnode for namespaces');
-is(($subnode->getNamespaces())[0]->value(), 'test:foo', 'Check subnode namespace matches'); 
+done_testing();
