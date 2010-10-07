@@ -1,3 +1,14 @@
+Revision history for {{ $dist->name }}: {{ $dist->version }}
+
+{{ $NEXT }}
+
+1.102800  2010-10-07 03:08:23 America/Chicago
+        Overhaul internals to use MooseX::Declare
+        Remove Utils.pm (No one should be using it)
+        Redo documentation using Pod::Weaver
+        Remove all 5.10isms (should be clean wherever MXD runs)
+        Distribution now controlled by Dist::Zilla
+
 2009-04-18 NPEREZ <nperez@cpan.org>
 	
 	* Version 0.38
